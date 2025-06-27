@@ -301,5 +301,54 @@
         }
         
         setVH();
-        window.addEventListener('resize', setVH);
-        window.
+        window.addEventListener('orientationchange', setVH);
+
+        // Connection status monitoring
+        function updateConnectionStatus() {
+            const isOnline = navigator.onLine;
+            if (!isOnline) {
+                const banner = document.createElement('div');
+                banner.id = 'offline-banner';
+                banner.style.cssText = `
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    background: #f59e0b;
+                    color: white;
+                    text-align: center;
+                    padding: 0.5rem;
+                    z-index: 10000;
+                    font-weight: 500;
+                `;
+                banner.textContent = '📱 You are currently offline. Some features may not be available.';
+                document.body.appendChild(banner);
+            } else {
+                const banner = document.getElementById('offline-banner');
+                if (banner) banner.remove();
+            }
+        }
+
+        window.addEventListener('online', updateConnectionStatus);
+        window.addEventListener('offline', updateConnectionStatus);
+        updateConnectionStatus();
+
+        // Preload critical resources
+        const preloadResources = [
+            '/favicon.svg',
+            '/manifest.json'
+        ];
+
+        preloadResources.forEach(resource => {
+            const link = document.createElement('link');
+            link.rel = 'preload';
+            link.href = resource;
+            link.as = resource.endsWith('.svg') ? 'image' : 'fetch';
+            document.head.appendChild(link);
+        });
+    </script>
+
+    <!-- Module bundler will inject the main application script here -->
+    <script type="module" src="/src/main.tsx"></script>
+</body>
+</html>
