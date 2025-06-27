@@ -1,0 +1,55 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Users can read/write their own data
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Company data access based on membership
+    match /companies/{companyId} {
+      allow read, write: if request.auth != null 
+        && exists(/databases/$(database)/documents/companies/$(companyId)/members/$(request.auth.uid));
+    }
+    
+    // Jobs - company members can read/write
+    match /jobs/{jobId} {
+      allow read, write: if request.auth != null 
+        && exists(/databases/$(database)/documents/companies/$(resource.data.companyId)/members/$(request.auth.uid));
+    }
+    
+    // Team members - company access
+    match /team/{memberId} {
+      allow read, write: if request.auth != null 
+        && exists(/databases/$(database)/documents/companies/$(resource.data.companyId)/members/$(request.auth.uid));
+    }
+    
+    // Tasks - assignee and company members can read/write
+    match /tasks/{taskId} {
+      allow read, write: if request.auth != null && (
+        request.auth.uid == resource.data.assigneeId ||
+        exists(/databases/$(database)/documents/companies/$(resource.data.companyId)/members/$(request.auth.uid))
+      );
+    }
+    
+    // Messages - participants can read/write
+    match /messages/{messageId} {
+      allow read, write: if request.auth != null 
+        && request.auth.uid in resource.data.participants;
+    }
+    
+    // Financial data - owner and admin access only
+    match /financials/{docId} {
+      allow read, write: if request.auth != null 
+        && exists(/databases/$(database)/documents/companies/$(resource.data.companyId)/admins/$(request.auth.uid));
+    }
+    
+    // Inventory - company members can read, admins can write
+    match /inventory/{itemId} {
+      allow read: if request.auth != null 
+        && exists(/databases/$(database)/documents/companies/$(resource.data.companyId)/members/$(request.auth.uid));
+      allow write: if request.auth != null 
+        && exists(/databases/$(database)/documents/companies/$(resource.data.companyId)/admins/$(request.auth.uid));
+    }
+  }
+}
